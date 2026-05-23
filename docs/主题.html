@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameCatcher - 主题设计系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* 背景层 */
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-accent: rgba(139, 92, 246, 0.1);
+
+      /* 文字层 */
+      --text-primary: rgba(255, 255, 255, 0.9);
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --text-muted: rgba(255, 255, 255, 0.35);
+
+      /* 强调色 */
+      --accent: #8b5cf6;
+      --accent-hover: #a78bfa;
+      --accent-active: #7c3aed;
+      --accent-glow: rgba(139, 92, 246, 0.3);
+
+      /* 玻璃面板 */
+      --glass-low: rgba(255, 255, 255, 0.03);
+      --glass-mid: rgba(255, 255, 255, 0.06);
+      --glass-high: rgba(255, 255, 255, 0.1);
+      --glass-top: rgba(255, 255, 255, 0.12);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-highlight: rgba(255, 255, 255, 0.15);
+
+      /* 字体 */
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 48px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    /* 颜色展示 */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .color-swatch {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+    }
+
+    .color-block {
+      height: 80px;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+    }
+
+    .color-info {
+      padding: 12px;
+      background: var(--glass-mid);
+      backdrop-filter: blur(12px);
+    }
+
+    .color-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .color-value {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: 'Menlo', monospace;
+    }
+
+    /* 玻璃层级展示 */
+    .glass-showcase {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .glass-panel {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--glass-highlight);
+    }
+
+    .glass-low {
+      background: var(--glass-low);
+      backdrop-filter: blur(40px);
+    }
+
+    .glass-mid {
+      background: var(--glass-mid);
+      backdrop-filter: blur(24px) saturate(180%);
+    }
+
+    .glass-high {
+      background: var(--glass-high);
+      backdrop-filter: blur(32px) saturate(180%);
+    }
+
+    .glass-top {
+      background: var(--glass-top);
+      backdrop-filter: blur(20px) saturate(180%);
+    }
+
+    .glass-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .glass-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* 组件展示 */
+    .components-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .component-card {
+      background: var(--glass-mid);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .component-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--glass-highlight);
+    }
+
+    .component-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 按钮 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-default {
+      background: var(--glass-mid);
+      backdrop-filter: blur(12px);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+    }
+
+    .btn-default:hover {
+      background: var(--glass-high);
+      transform: scale(1.02);
+    }
+
+    .btn-default:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-active));
+      color: white;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 30px rgba(139, 92, 246, 0.5);
+      transform: scale(1.02);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* 输入框 */
+    .input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--glass-low);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* 下拉框 */
+    .select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--glass-low);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.6)' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* 滑块 */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: var(--glass-border);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 0 3px var(--accent-glow), 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .slider-value {
+      min-width: 36px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: 'Menlo', monospace;
+    }
+
+    /* 标签 */
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: var(--glass-low);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: var(--glass-mid);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    /* 图标展示 */
+    .icons-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 16px;
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .icon-item:hover {
+      background: var(--glass-mid);
+    }
+
+    .icon-item svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-secondary);
+      stroke-width: 1.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s ease;
+    }
+
+    .icon-item:hover svg {
+      stroke: var(--accent);
+    }
+
+    .icon-name {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 录制界面预览 */
+    .preview-window {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--glass-mid);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .preview-window::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--glass-highlight);
+      z-index: 1;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .preview-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .preview-area {
+      aspect-ratio: 16/10;
+      background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(124,58,237,0.05));
+      border-radius: 12px;
+      border: 2px dashed var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .preview-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .preview-label {
+      width: 80px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .preview-value {
+      flex: 1;
+    }
+
+    /* 文字层级 */
+    .typography-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .text-h1 { font-size: 28px; font-weight: 700; }
+    .text-h2 { font-size: 20px; font-weight: 600; }
+    .text-h3 { font-size: 16px; font-weight: 600; }
+    .text-body { font-size: 14px; color: var(--text-secondary); }
+    .text-caption { font-size: 12px; color: var(--text-muted); }
+
+    /* 间距工具 */
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--glass-border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FrameCatcher</h1>
+    <p class="subtitle">液态玻璃主题设计系统 · Liquid Glass Design System</p>
+
+    <!-- 颜色体系 -->
+    <div class="section">
+      <h2 class="section-title">配色体系</h2>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--bg-primary);">
+            <span style="color: var(--text-secondary); font-size: 12px;">主背景</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">BG Primary</div>
+            <div class="color-value">#0a0a0f</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--bg-secondary);">
+            <span style="color: var(--text-secondary); font-size: 12px;">次背景</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">BG Secondary</div>
+            <div class="color-value">#12121a</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--accent);">
+            <span style="color: white; font-size: 12px;">强调色</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">Accent</div>
+            <div class="color-value">#8b5cf6</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--accent-hover);">
+            <span style="color: white; font-size: 12px;">悬停色</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">Accent Hover</div>
+            <div class="color-value">#a78bfa</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--text-primary); border: 1px solid var(--glass-border);">
+            <span style="color: var(--bg-primary); font-size: 12px;">主文字</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">Text Primary</div>
+            <div class="color-value">rgba(255,255,255,0.9)</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: var(--text-secondary);">
+            <span style="color: var(--bg-primary); font-size: 12px;">次文字</span>
+          </div>
+          <div class="color-info">
+            <div class="color-name">Text Secondary</div>
+            <div class="color-value">rgba(255,255,255,0.6)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 玻璃层级 -->
+    <div class="section">
+      <h2 class="section-title">玻璃面板层级</h2>
+      <div class="glass-showcase">
+        <div class="glass-panel glass-low">
+          <span class="glass-label">底层</span>
+          <span class="glass-desc">背景装饰</span>
+          <span class="glass-desc">blur(40px)</span>
+        </div>
+        <div class="glass-panel glass-mid">
+          <span class="glass-label">中层</span>
+          <span class="glass-desc">卡片/面板</span>
+          <span class="glass-desc">blur(24px)</span>
+        </div>
+        <div class="glass-panel glass-high">
+          <span class="glass-label">上层</span>
+          <span class="glass-desc">弹窗/浮层</span>
+          <span class="glass-desc">blur(32px)</span>
+        </div>
+        <div class="glass-panel glass-top">
+          <span class="glass-label">顶层</span>
+          <span class="glass-desc">控制条/Toast</span>
+          <span class="glass-desc">blur(20px)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文字层级 -->
+    <div class="section">
+      <h2 class="section-title">文字层级</h2>
+      <div class="component-card">
+        <div class="typography-demo">
+          <div class="text-h1">标题 H1 (28px / Bold)</div>
+          <div class="text-h2">标题 H2 (20px / SemiBold)</div>
+          <div class="text-h3">标题 H3 (16px / SemiBold)</div>
+          <div class="text-body">正文 Body (14px / Regular) — 用于描述文本和常规内容展示</div>
+          <div class="text-caption">说明 Caption (12px / Regular) — 用于辅助说明、时间戳等次要信息</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 组件 -->
+    <div class="section">
+      <h2 class="section-title">组件</h2>
+      <div class="components-grid">
+        <!-- 按钮 -->
+        <div class="component-card">
+          <div class="component-title">Buttons</div>
+          <div class="btn-group">
+            <button class="btn btn-default">默认按钮</button>
+            <button class="btn btn-primary">主按钮</button>
+          </div>
+          <div class="btn-group mt-16">
+            <button class="btn btn-default" style="padding: 8px 16px; font-size: 13px;">小按钮</button>
+            <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">小主按钮</button>
+          </div>
+        </div>
+
+        <!-- 输入框 -->
+        <div class="component-card">
+          <div class="component-title">Inputs</div>
+          <input class="input" type="text" placeholder="请输入内容...">
+          <input class="input mt-16" type="text" value="已输入内容" style="color: var(--text-primary);">
+        </div>
+
+        <!-- 下拉框 -->
+        <div class="component-card">
+          <div class="component-title">Select</div>
+          <select class="select">
+            <option>默认麦克风</option>
+            <option>麦克风 1</option>
+            <option>麦克风 2</option>
+            <option>不使用麦克风</option>
+          </select>
+        </div>
+
+        <!-- 滑块 -->
+        <div class="component-card">
+          <div class="component-title">Slider</div>
+          <div class="slider-container">
+            <input class="slider" type="range" min="0" max="100" value="80" id="slider1">
+            <span class="slider-value" id="slider1Value">80</span>
+          </div>
+          <div class="slider-container mt-16">
+            <input class="slider" type="range" min="0" max="100" value="45" id="slider2">
+            <span class="slider-value" id="slider2Value">45</span>
+          </div>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="component-card">
+          <div class="component-title">Tabs</div>
+          <div class="tabs">
+            <div class="tab active">窗口录制</div>
+            <div class="tab">区域录制</div>
+            <div class="tab">音频录制</div>
+          </div>
+        </div>
+
+        <!-- 组合示例 -->
+        <div class="component-card">
+          <div class="component-title">Form Group</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="preview-row">
+              <span class="preview-label">麦克风</span>
+              <select class="select preview-value">
+                <option>默认麦克风</option>
+              </select>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">音量</span>
+              <div class="slider-container preview-value">
+                <input class="slider" type="range" min="0" max="100" value="80">
+                <span class="slider-value">80</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图标 -->
+    <div class="section">
+      <h2 class="section-title">Lucide 图标 (Outline 风格)</h2>
+      <div class="icons-grid">
+        <!-- 录制相关 -->
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span class="icon-name">Monitor</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <span class="icon-name">Layout</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          <span class="icon-name">Mic</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <span class="icon-name">Volume</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          <span class="icon-name">Camera</span>
+        </div>
+        <!-- 播放相关 -->
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span class="icon-name">Play</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span class="icon-name">Pause</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><polygon points="9 8 16 12 9 16 9 8"/></svg>
+          <span class="icon-name">Video</span>
+        </div>
+        <!-- 操作相关 -->
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          <span class="icon-name">Trash</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+          <span class="icon-name">Settings</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span class="icon-name">LogOut</span>
+        </div>
+        <div class="icon-item">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="icon-name">Info</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 界面预览 -->
+    <div class="section">
+      <h2 class="section-title">录屏界面预览</h2>
+      <div class="preview-window">
+        <div class="preview-header">
+          <span class="preview-title">FrameCatcher</span>
+          <div style="display: flex; gap: 8px;">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--text-muted); display: inline-block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--text-muted); display: inline-block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+          </div>
+        </div>
+        <div class="preview-body">
+          <div class="tabs" style="justify-content: center;">
+            <div class="tab active">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              窗口
+            </div>
+            <div class="tab">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              区域
+            </div>
+            <div class="tab">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+              音频
+            </div>
+          </div>
+          <div class="preview-area">
+            选择要录制的窗口
+          </div>
+          <div class="preview-controls">
+            <div class="preview-row">
+              <span class="preview-label">麦克风</span>
+              <select class="select preview-value">
+                <option>默认麦克风</option>
+              </select>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">扬声器</span>
+              <select class="select preview-value">
+                <option>默认扬声器</option>
+              </select>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">摄像头</span>
+              <select class="select preview-value">
+                <option>不使用摄像头</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width: 100%; padding: 14px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline-block; vertical-align: middle; margin-right: 6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            开始录制
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS 变量参考 -->
+    <div class="section">
+      <h2 class="section-title">CSS 变量速查</h2>
+      <div class="component-card">
+        <pre style="font-size: 12px; line-height: 1.8; overflow-x: auto; color: var(--text-secondary);"><code>:root {
+  /* 背景 */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-accent: rgba(139, 92, 246, 0.1);
+
+  /* 文字 */
+  --text-primary: rgba(255, 255, 255, 0.9);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+
+  /* 强调色 */
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+  --accent-active: #7c3aed;
+  --accent-glow: rgba(139, 92, 246, 0.3);
+
+  /* 玻璃面板 */
+  --glass-low: rgba(255, 255, 255, 0.03);
+  --glass-mid: rgba(255, 255, 255, 0.06);
+  --glass-high: rgba(255, 255, 255, 0.1);
+  --glass-top: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 滑块数值同步
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      const valueEl = slider.parentElement.querySelector('.slider-value');
+      if (valueEl) {
+        slider.addEventListener('input', () => {
+          valueEl.textContent = slider.value;
+        });
+      }
+    });
+  </script>
+</body>
+</html>
