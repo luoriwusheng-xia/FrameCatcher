@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Administrator/.claude/**)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm typecheck:web)",
+      "Bash(pnpm typecheck:node)",
+      "Bash(pnpm dev *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm typecheck *)"
+    ],
+    "defaultMode": "plan"
+  }
+}

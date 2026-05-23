@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allowlist": [
+      {
+        "tool": "Bash",
+        "match": ".*"
+      },
+      {
+        "tool": "Read",
+        "match": ".*"
+      },
+      {
+        "tool": "Edit",
+        "match": ".*"
+      },
+      {
+        "tool": "Write",
+        "match": ".*"
+      },
+      {
+        "tool": "Glob",
+        "match": ".*"
+      },
+      {
+        "tool": "Grep",
+        "match": ".*"
+      },
+      {
+        "tool": "Agent",
+        "match": ".*"
+      },
+      {
+        "tool": "TaskCreate",
+        "match": ".*"
+      },
+      {
+        "tool": "TaskUpdate",
+        "match": ".*"
+      }
+    ]
+  }
+}
