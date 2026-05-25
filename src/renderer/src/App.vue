@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Monitor, Film, Settings, Minus, Square, X } from 'lucide-vue-next'
-import { onMounted } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const isMac = typeof process !== 'undefined' && process.platform === 'darwin'
+const isPlayerRoute = computed(() => route.path === '/player')
+const showWindowControls = computed(() => !isMac || isPlayerRoute.value)
 
 function isActive(path: string): boolean {
   return route.path === path
@@ -34,13 +36,16 @@ onMounted(async() => {
   <div class="app-root">
     <!-- 顶部标题栏 -->
     <header class="app-header">
-      <div class="header-left">
+      <div class="header-left" :class="{ compact: isPlayerRoute }">
         <div class="logo">
-          <Monitor :size="22" />
-          <span class="logo-text">FrameCatcher</span>
+          <template v-if="!isPlayerRoute">
+            <Monitor :size="22" />
+            <span class="logo-text">FrameCatcher</span>
+          </template>
+          <span v-else class="player-title">播放器</span>
         </div>
       </div>
-      <nav class="header-nav">
+      <nav v-if="!isPlayerRoute" class="header-nav">
         <router-link to="/" class="nav-item" :class="{ active: isActive('/') }">
           <Monitor :size="16" />
           <span>录屏</span>
@@ -57,6 +62,7 @@ onMounted(async() => {
       <!-- 设置按钮 + 窗口控制按钮 -->
       <div class="header-actions">
         <button
+          v-if="!isPlayerRoute"
           class="settings-btn"
           :class="{ active: isActive('/settings') }"
           @click="router.push('/settings')"
@@ -64,17 +70,17 @@ onMounted(async() => {
           <Settings :size="18" />
           <span>设置</span>
         </button>
-        <div v-if="!isMac" class="window-controls">
-        <button class="window-btn minimize" @click="onMinimize">
-          <Minus :size="12" />
-        </button>
-        <button class="window-btn maximize" @click="onMaximize">
-          <Square :size="10" />
-        </button>
-        <button class="window-btn close" @click="onClose">
-          <X :size="12" />
-        </button>
-      </div>
+        <div v-if="showWindowControls" class="window-controls" :class="{ player: isPlayerRoute }">
+          <button class="window-btn minimize" @click="onMinimize">
+            <Minus :size="12" />
+          </button>
+          <button class="window-btn maximize" @click="onMaximize">
+            <Square :size="10" />
+          </button>
+          <button class="window-btn close" @click="onClose">
+            <X :size="12" />
+          </button>
+        </div>
       </div>
     </header>
 
@@ -112,6 +118,11 @@ onMounted(async() => {
 .header-left {
   display: flex;
   align-items: center;
+  min-width: 180px;
+}
+
+.header-left.compact {
+  min-width: 0;
 }
 
 .logo {
@@ -129,6 +140,12 @@ onMounted(async() => {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.player-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .header-nav {
@@ -199,6 +216,11 @@ onMounted(async() => {
   align-items: center;
   gap: 8px;
   -webkit-app-region: no-drag;
+  margin-left: auto;
+}
+
+.window-controls.player {
+  gap: 10px;
 }
 
 .window-btn {

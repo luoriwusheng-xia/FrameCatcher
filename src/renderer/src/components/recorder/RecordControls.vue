@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Pause, Play, Square } from 'lucide-vue-next'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Pause, Play, Square, GripVertical } from 'lucide-vue-next'
 
 defineProps<{
   duration: string
@@ -12,6 +13,38 @@ const emit = defineEmits<{
   stop: []
 }>()
 
+const controlsRef = ref<HTMLDivElement | null>(null)
+const isDragging = ref(false)
+const position = ref({ x: 0, y: 0 })
+const dragOffset = ref({ x: 0, y: 0 })
+
+function handleMouseDown(e: MouseEvent) {
+  // 只有点击控制条本身（不是按钮）时才拖动
+  const target = e.target as HTMLElement
+  if (target.closest('.control-btn')) return
+
+  isDragging.value = true
+  const rect = controlsRef.value?.getBoundingClientRect()
+  if (rect) {
+    dragOffset.value = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    }
+  }
+}
+
+function handleMouseMove(e: MouseEvent) {
+  if (!isDragging.value) return
+  position.value = {
+    x: e.clientX - dragOffset.value.x,
+    y: e.clientY - dragOffset.value.y,
+  }
+}
+
+function handleMouseUp() {
+  isDragging.value = false
+}
+
 function handleTogglePause() {
   emit('pause')
 }
@@ -23,11 +56,37 @@ function handleToggleResume() {
 function handleStop() {
   emit('stop')
 }
+
+onMounted(() => {
+  window.addEventListener('mousemove', handleMouseMove)
+  window.addEventListener('mouseup', handleMouseUp)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousemove', handleMouseMove)
+  window.removeEventListener('mouseup', handleMouseUp)
+})
 </script>
 
 <template>
-  <div class="record-controls">
+  <div
+    ref="controlsRef"
+    class="record-controls"
+    :class="{ dragging: isDragging }"
+    :style="{
+      left: position.x > 0 ? position.x + 'px' : '50%',
+      top: position.y > 0 ? position.y + 'px' : 'auto',
+      bottom: position.y > 0 ? 'auto' : '32px',
+      transform: position.x > 0 ? 'none' : 'translateX(-50%)',
+    }"
+    @mousedown="handleMouseDown"
+  >
     <div class="controls-inner">
+      <!-- 拖动手柄 -->
+      <div class="drag-handle" title="拖动">
+        <GripVertical :size="14" />
+      </div>
+
       <!-- 录制指示灯 -->
       <div class="record-indicator">
         <div class="indicator-dot" />
@@ -68,24 +127,43 @@ function handleStop() {
 
 <style scoped>
 .record-controls {
-  position: absolute;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   z-index: 100;
+  cursor: grab;
+  user-select: none;
+}
+
+.record-controls.dragging {
+  cursor: grabbing;
 }
 
 .controls-inner {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 20px;
+  gap: 12px;
+  padding: 10px 16px;
   background: var(--glass-low);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* 拖动手柄 */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.drag-handle:hover {
+  color: var(--text-secondary);
+  background: var(--glass-mid);
 }
 
 /* 录制指示灯 */

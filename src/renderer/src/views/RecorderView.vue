@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Monitor, Square, Mic, Headphones, Video, Circle, Film, Settings } from 'lucide-vue-next'
+import { ref, watch } from 'vue'
+import {
+  Monitor,
+  Square,
+  Mic,
+  Headphones,
+  Video,
+  Circle,
+  Film,
+  Settings,
+} from 'lucide-vue-next'
 import { useMediaDevices } from '../composables/useMediaDevices'
 import { useRecorder, type RecordMode } from '../composables/useRecorder'
 import RecordControls from '../components/recorder/RecordControls.vue'
@@ -11,10 +20,20 @@ const {
   isRecording,
   isPaused,
   formattedDuration,
+  previewStream,
+  livePreviewStream,
+  windowSources,
+  selectedSourceId,
+  sourcesLoading,
+  selectedArea,
+  fetchWindowSources,
+  openAreaSelector,
+  startLivePreview,
+  stopLivePreview,
   startRecording,
   pauseRecording,
   resumeRecording,
-  stopRecording
+  stopRecording,
 } = useRecorder()
 
 const activeTab = ref<RecordMode>('window')
@@ -22,24 +41,99 @@ const selectedMicrophone = ref('')
 const selectedSpeaker = ref('')
 const selectedCamera = ref('')
 const showCountdown = ref(false)
+const showFormatDialog = ref(false)
+const videoRef = ref<HTMLVideoElement | null>(null)
+const livePreviewVideoRef = ref<HTMLVideoElement | null>(null)
 
 const tabs = [
   { key: 'window' as RecordMode, label: '窗口录制', icon: Monitor },
   { key: 'area' as RecordMode, label: '区域录制', icon: Square },
-  { key: 'audio' as RecordMode, label: '音频录制', icon: Mic }
+  { key: 'audio' as RecordMode, label: '音频录制', icon: Mic },
 ]
 
+const outputFormats = ['webm', 'mp4', 'mov', 'avi']
+
+// 切换标签时加载窗口源 / 停止实时预览
+watch(activeTab, (tab, oldTab) => {
+  if (tab === 'window') {
+    fetchWindowSources()
+  }
+  if (oldTab === 'window' && tab !== 'window') {
+    stopLivePreview()
+  }
+})
+
+// 选中窗口变化时启动实时预览
+watch(selectedSourceId, (id) => {
+  if (activeTab.value === 'window' && id && !isRecording.value) {
+    startLivePreview(id)
+  }
+})
+
+// 录制结束后自动恢复实时预览
+watch(isRecording, (recording) => {
+  if (!recording && activeTab.value === 'window' && selectedSourceId.value) {
+    // 录制结束，重新开始实时预览
+    startLivePreview(selectedSourceId.value)
+  }
+})
+
+// 录制预览流变化时绑定到 video 元素
+watch(previewStream, (stream) => {
+  if (stream && videoRef.value) {
+    videoRef.value.srcObject = stream
+    videoRef.value.play().catch(() => {})
+  }
+})
+
+// 实时预览流变化时绑定到 live preview video 元素
+watch(livePreviewStream, (stream) => {
+  if (stream && livePreviewVideoRef.value) {
+    livePreviewVideoRef.value.srcObject = stream
+    livePreviewVideoRef.value.play().catch(() => {})
+  }
+})
+
 async function handleStartRecording() {
+  if (activeTab.value === 'area') {
+    // 区域录制：先打开区域选择器
+    const area = await openAreaSelector()
+    if (!area) return
+    selectedArea.value = area
+  }
   showCountdown.value = true
 }
 
 async function onCountdownComplete() {
   showCountdown.value = false
-  await startRecording(activeTab.value)
+
+  const options: {
+    sourceId?: string
+    area?: { x: number; y: number; width: number; height: number }
+    includeMic?: boolean
+    includeSystemAudio?: boolean
+  } = {
+    includeMic: selectedMicrophone.value !== 'none',
+    includeSystemAudio: selectedSpeaker.value !== 'none',
+  }
+
+  if (activeTab.value === 'window') {
+    options.sourceId = selectedSourceId.value
+  } else if (activeTab.value === 'area') {
+    options.area = selectedArea.value!
+  }
+
+  await startRecording(activeTab.value, options)
 }
 
 async function handleStopRecording() {
-  await stopRecording()
+  // 直接停止，弹出格式选择对话框
+  showFormatDialog.value = true
+}
+
+async function onFormatSelected(format: string) {
+  showFormatDialog.value = false
+  await stopRecording(format)
 }
 </script>
 
@@ -47,6 +141,23 @@ async function handleStopRecording() {
   <div class="recorder-view">
     <!-- 倒计时遮罩 -->
     <CountdownOverlay v-if="showCountdown" :seconds="3" @complete="onCountdownComplete" />
+
+    <!-- 格式选择对话框 -->
+    <div v-if="showFormatDialog" class="format-dialog-overlay" @click="showFormatDialog = false">
+      <div class="format-dialog" @click.stop>
+        <h3>选择保存格式</h3>
+        <div class="format-options">
+          <button
+            v-for="fmt in outputFormats"
+            :key="fmt"
+            class="format-btn"
+            @click="onFormatSelected(fmt)"
+          >
+            .{{ fmt }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 录制控制条 -->
     <RecordControls
@@ -76,12 +187,46 @@ async function handleStopRecording() {
       <!-- 模式内容区 -->
       <div class="mode-content">
         <!-- 窗口录制 -->
-        <div v-if="activeTab === 'window'" class="mode-panel">
-          <div class="placeholder-card">
+        <div v-if="activeTab === 'window'" class="mode-panel window-mode-panel">
+          <div v-if="sourcesLoading" class="loading-text">正在获取窗口列表...</div>
+          <div v-else-if="windowSources.length === 0" class="placeholder-card">
             <Monitor :size="48" class="placeholder-icon" />
             <h3>窗口录制</h3>
-            <p>点击开始录制，系统将弹出窗口选择器</p>
+            <p>未检测到可录制的窗口</p>
           </div>
+          <template v-else>
+            <!-- 实时预览区域 -->
+            <div v-if="livePreviewStream" class="live-preview-panel">
+              <video
+                ref="livePreviewVideoRef"
+                class="live-preview-video"
+                autoplay
+                muted
+                playsinline
+              />
+              <div class="live-preview-label">
+                <Monitor :size="12" />
+                <span>实时预览</span>
+              </div>
+            </div>
+            <div v-else-if="selectedSourceId" class="live-preview-panel live-preview-loading">
+              <Monitor :size="32" class="placeholder-icon" />
+              <span>正在加载实时预览...</span>
+            </div>
+            <!-- 窗口选择网格 -->
+            <div class="window-sources-grid">
+              <div
+                v-for="source in windowSources"
+                :key="source.id"
+                class="window-source-item"
+                :class="{ selected: selectedSourceId === source.id }"
+                @click="selectedSourceId = source.id"
+              >
+                <img :src="source.thumbnailDataUrl" :alt="source.name" class="window-thumbnail" />
+                <span class="window-name">{{ source.name }}</span>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- 区域录制 -->
@@ -90,6 +235,7 @@ async function handleStopRecording() {
             <Square :size="48" class="placeholder-icon" />
             <h3>区域录制</h3>
             <p>点击开始录制，将进入区域选择模式</p>
+            <p class="hint">可自由拖动选择区域，支持预设尺寸</p>
           </div>
         </div>
 
@@ -118,6 +264,7 @@ async function handleStopRecording() {
             </label>
             <select v-model="selectedMicrophone" class="device-select" :disabled="devicesLoading">
               <option value="">系统默认</option>
+              <option value="none">不使用</option>
               <option v-for="mic in microphones" :key="mic.deviceId" :value="mic.deviceId">
                 {{ mic.label || `麦克风 ${mic.deviceId.slice(0, 8)}` }}
               </option>
@@ -132,6 +279,7 @@ async function handleStopRecording() {
             </label>
             <select v-model="selectedSpeaker" class="device-select" :disabled="devicesLoading">
               <option value="">系统默认</option>
+              <option value="none">不使用</option>
               <option v-for="spk in speakers" :key="spk.deviceId" :value="spk.deviceId">
                 {{ spk.label || `扬声器 ${spk.deviceId.slice(0, 8)}` }}
               </option>
@@ -170,6 +318,15 @@ async function handleStopRecording() {
           <Settings :size="16" />
           <span>设置</span>
         </router-link>
+      </div>
+    </div>
+
+    <!-- 录制预览区域（录制时显示） -->
+    <div v-if="isRecording" class="recording-preview">
+      <video ref="videoRef" class="preview-video" autoplay muted playsinline />
+      <div class="preview-label">
+        <Monitor :size="14" />
+        <span>录制预览</span>
       </div>
     </div>
   </div>
@@ -240,6 +397,8 @@ async function handleStopRecording() {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .mode-panel {
@@ -248,6 +407,7 @@ async function handleStopRecording() {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
 }
 
 .placeholder-card {
@@ -278,6 +438,130 @@ async function handleStopRecording() {
 .placeholder-card p {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.placeholder-card .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* 窗口录制模式 */
+.window-mode-panel {
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+/* 实时预览 */
+.live-preview-panel {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #000;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.live-preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.live-preview-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.live-preview-label span {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.live-preview-loading {
+  background: var(--glass-low);
+  color: var(--text-secondary);
+  font-size: 13px;
+  gap: 12px;
+}
+
+/* 窗口源列表 */
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.window-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 140px;
+  flex-shrink: 0;
+}
+
+.window-source-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--glass-low);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.window-source-item:hover {
+  background: var(--glass-mid);
+}
+
+.window-source-item.selected {
+  border-color: var(--accent);
+  background: var(--bg-accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.window-thumbnail {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--glass-mid);
+}
+
+.window-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.window-source-item.selected .window-name {
+  color: var(--accent);
 }
 
 /* 设备选择区 */
@@ -422,5 +706,93 @@ async function handleStopRecording() {
 .bottom-link:hover {
   color: var(--text-secondary);
   background: var(--glass-mid);
+}
+
+/* 录制预览 */
+.recording-preview {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  right: 20px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+.preview-video {
+  width: 100%;
+  height: calc(100% - 32px);
+  object-fit: contain;
+  background: #000;
+}
+
+.preview-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 格式选择对话框 */
+.format-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.format-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 36px;
+  background: var(--glass-low);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
+}
+
+.format-dialog h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.format-options {
+  display: flex;
+  gap: 12px;
+}
+
+.format-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-mid);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.format-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-accent);
+  color: var(--accent);
 }
 </style>

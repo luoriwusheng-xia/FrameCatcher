@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PlayerControls from './PlayerControls.vue'
 
 const props = defineProps<{
   src: string
+  subtitleSrc?: string
+  autoplay?: boolean
 }>()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -21,24 +23,6 @@ const subtitlesEnabled = ref(true)
 const isDragging = ref(false)
 
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null
-
-const subtitleSrc = computed(() => {
-  if (!props.src) return ''
-  const base = props.src.replace(/\.[^/.]+$/, '')
-  return `${base}.vtt`
-})
-
-// formatTime is used by child components via template interpolation
-export function formatTime(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0) return '00:00'
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-  }
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-}
 
 function togglePlay() {
   const video = videoRef.value
@@ -176,17 +160,39 @@ function onSeekEnd(time: number) {
   seekTo(time)
 }
 
+async function playCurrentSource(): Promise<void> {
+  const video = videoRef.value
+  if (!video || !props.autoplay || !props.src) return
+
+  try {
+    await video.play()
+  } catch {
+    // Ignore autoplay failures; the user can still start playback manually.
+  }
+}
+
 watch(
   () => props.src,
-  () => {
+  async () => {
+    const video = videoRef.value
+
     isPlaying.value = false
     currentTime.value = 0
     duration.value = 0
     showControls.value = true
+    isDragging.value = false
     if (controlsHideTimer) {
       clearTimeout(controlsHideTimer)
       controlsHideTimer = null
     }
+
+    await nextTick()
+    if (video) {
+      video.pause()
+      video.load()
+      video.currentTime = 0
+    }
+    await playCurrentSource()
   }
 )
 
@@ -221,9 +227,9 @@ onUnmounted(() => {
       @ended="isPlaying = false"
     >
       <track
-        v-if="subtitleSrc"
+        v-if="props.subtitleSrc"
         kind="subtitles"
-        :src="subtitleSrc"
+        :src="props.subtitleSrc"
         srclang="zh"
         label="字幕"
         default

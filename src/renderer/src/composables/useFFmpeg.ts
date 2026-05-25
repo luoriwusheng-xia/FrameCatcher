@@ -1,5 +1,13 @@
 import { ref } from 'vue'
-import type { VideoInfo } from '../../../main/ffmpeg'
+
+export interface VideoInfo {
+  format: string
+  duration: number
+  width: number
+  height: number
+  bitrate: number
+  size: number
+}
 
 export function useFFmpeg() {
   const isAvailable = ref(false)

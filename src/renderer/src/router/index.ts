@@ -4,7 +4,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('../views/HomeView.vue')
+    component: () => import('../views/RecorderView.vue')
   },
   {
     path: '/settings',
@@ -17,9 +17,14 @@ const routes = [
     component: () => import('../views/RecordsView.vue')
   },
   {
-    path: '/player/:path',
+    path: '/player',
     name: 'Player',
     component: () => import('../views/PlayerView.vue')
+  },
+  {
+    path: '/area-selector',
+    name: 'AreaSelector',
+    component: () => import('../components/recorder/AreaSelector.vue')
   }
 ]
 
