@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { Monitor, Film, Settings, Minus, Square, X } from 'lucide-vue-next'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,25 +12,21 @@ function isActive(path: string): boolean {
 }
 
 function onClose(): void {
-  window.electron.ipcRenderer.send('window:close')
+  console.log(window.api)
+
+  window.api.window.close()
 }
 
 function onMinimize(): void {
-  window.electron.ipcRenderer.send('window:minimize')
+  window.api.window.minimize()
 }
 
 function onMaximize(): void {
-  window.electron.ipcRenderer.send('window:maximize')
+  window.api.window.maximize()
 }
 
-onMounted(() => {
-  const unsubscribe = window.electron.ipcRenderer.on('menu:navigate', (_, path: string) => {
-    router.push(path)
-  })
-
-  onUnmounted(() => {
-    unsubscribe()
-  })
+onMounted(async() => {
+  console.log(await window.api.ping())
 })
 </script>
 
@@ -111,7 +107,6 @@ onMounted(() => {
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
   flex-shrink: 0;
   -webkit-app-region: drag;
-  app-region: drag;
 }
 
 .header-left {
@@ -141,7 +136,6 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 .nav-item {
@@ -173,7 +167,6 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 .settings-btn {
@@ -206,7 +199,6 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 .window-btn {
