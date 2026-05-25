@@ -8,6 +8,16 @@ import Store from 'electron-store'
  * - audio: 音频设置（设备选择、音量）
  * - watermark: 水印设置（开关、文字/图片配置）
  */
+interface RecordEntry {
+  id: string
+  name: string
+  path: string
+  duration: number
+  size: number
+  createdAt: number
+  mode: string
+}
+
 interface ConfigSchema {
   general: { outputDir: string }
   audio: {
@@ -26,6 +36,7 @@ interface ConfigSchema {
     imagePath: string
     imageOpacity: number
   }
+  records: RecordEntry[]
 }
 
 /**
@@ -61,7 +72,8 @@ const configStore = new Store<ConfigSchema>({
       density: 'medium',
       imagePath: '',
       imageOpacity: 50
-    }
+    },
+    records: []
   }
 })
 
