@@ -1,0 +1,2 @@
+- [Git commit 中文规范](feedback_git_commit_cn.md) — 用户使用中文撰写 git commit，严格遵循 git-cz 格式
+- [日期时间处理使用 dayjs](feedback_dayjs_date.md) — 项目中所有日期/时间/时长格式化统一使用 dayjs
