@@ -7,6 +7,7 @@
  * - 窗口生命周期管理（创建、激活、关闭）
  *
  * IPC 事件已抽离至 ipc.ts，通过 registerIpcHandlers 注册。
+ * 本地文件协议已抽离至 protocol.ts，通过 registerPrivilegedSchemes / registerFileProtocolHandler 注册。
  *
  * 安全设计：
  * - 渲染进程启用 sandbox + contextIsolation，禁止直接访问 Node.js API
@@ -19,10 +20,25 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipc'
-import log from 'electron-log/main';
+import { registerPrivilegedSchemes, registerFileProtocolHandler } from './protocol'
+import log from 'electron-log/main'
 
-// 日志插件初始化
-log.initialize();
+// ─── 日志初始化 ───────────────────────────────────
+
+log.initialize()
+
+if (import.meta.env.DEV) {
+  log.transports.file.resolvePathFn = () => join('./logs/main.log')
+  console.log('electron 版本', process.versions.electron)
+  console.log('内置node 版本', process.versions.node)
+  console.log('chrome内核 版本', process.versions.chrome)
+}
+
+log.info('软件启动')
+
+// ─── 协议注册（必须在 app.ready 之前）───────────────
+
+registerPrivilegedSchemes()
 
 // ─── 主窗口引用 ───────────────────────────────────
 
@@ -43,6 +59,7 @@ const mainWindowRef = {
 
 /**
  * 创建应用菜单栏
+ *
  * macOS 和 Windows 的菜单结构有差异，此处做平台适配：
  * - macOS 第一个菜单项自动使用应用名，无需手动指定 label
  * - 菜单中包含视图导航（录屏 / 录制列表 / 设置）
@@ -151,7 +168,8 @@ function createWindow(): void {
       // sandbox: true — 启用渲染进程沙箱
       // 虽然限制了渲染进程直接访问 Node.js，但我们通过 preload + IPC
       // 安全地暴露了所有必要的功能（文件系统、FFmpeg、窗口控制）
-      sandbox: true,
+      // sandbox: true,
+      sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -184,7 +202,6 @@ function createWindow(): void {
 
 // ─── 应用生命周期 ─────────────────────────────────
 
-// Electron 初始化完成后创建窗口
 app.whenReady().then(() => {
   // 设置 Windows 应用用户模型 ID（影响任务栏分组）
   electronApp.setAppUserModelId('com.electron')
@@ -196,6 +213,9 @@ app.whenReady().then(() => {
 
   // 注册 IPC 事件处理器（配置 / FFmpeg / 窗口控制）
   registerIpcHandlers({ mainWindow: mainWindowRef, app })
+
+  // 注册本地文件访问协议处理器（必须在窗口创建前）
+  registerFileProtocolHandler()
 
   createWindow()
   createAppMenu()
